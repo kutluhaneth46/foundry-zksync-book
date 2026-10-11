@@ -62,6 +62,33 @@ contract FooTest is Test {
 ```
 
 
+### Calls to Empty Code
+
+On EraVM, calls to addresses with no contract code can fail or behave differently than on EVM. This often shows up when a test calls an address that was never deployed, or when `vm.mockCall` does not match the calldata that is actually used.
+
+foundry-zksync detects this case early and logs an error so the problem is easier to spot:
+
+```text
+call may fail or behave unexpectedly due to empty code
+```
+
+If mocks already exist for that address but none match the current call, the message includes a hint:
+
+```text
+call may fail or behave unexpectedly due to empty code - please ensure the current calldata is mocked
+```
+
+To avoid the error:
+
+* Deploy the contract (or use `vm.etch` with valid EraVM bytecode) before calling the address.
+* When mocking, ensure `vm.mockCall` covers the exact calldata (and value, if you mock by value) used by the call.
+* Prefer a real contract over mocking when the call path is complex.
+
+Value transfers with empty calldata are ignored by this check. Known console / test-caller addresses are also skipped.
+
+See [foundry-zksync#513](https://github.com/matter-labs/foundry-zksync/pull/513) for the detection heuristic.
+
+
 ### Bytecode Constraints
 
 zkEVM asserts a [bytecode](https://docs.zksync.io/zksync-protocol/era-vm/contracts/bootloader#bytecode-validity) to be valid if it satisfies the following constraints:
